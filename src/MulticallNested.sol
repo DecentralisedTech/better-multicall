@@ -43,7 +43,7 @@ contract MulticallExtra {
                 (bool successA, bytes memory retA) = calls[i].parameters[ii].target.call(calls[i].parameters[ii].callData);
                 require(successA, "Multicall aggregate nested: call failed A");
                 bytes memory resultValue = new bytes(calls[i].parameters[ii].dataLength);
-                for (uint256 iii = 0; iii < calls[i].parameters[ii].offset; iii++) {
+                for (uint256 iii = 0; iii < calls[i].parameters[ii].dataLength; iii++) {
                     resultValue[iii] = retA[calls[i].parameters[ii].offset + iii];
                 } 
                 if (ii > 0) {
