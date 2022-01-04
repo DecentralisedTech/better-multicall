@@ -16,47 +16,44 @@ contract MulticallExtra {
     struct NestedCall {
         address target;
         bytes sig;
-        NestedCallParameter[] memory parameters;
     }
     struct NestedCallParameter {
         bool isStatic;
-        bytes staticParam; 
-        address target;
         bytes callData;
+        address target;
         uint256 dataLength;
         uint256 offset;
     }
-
-    function aggregateNested(NestedCall[] memory calls) public returns (uint256 blockNumber, bytes[] memory returnData) {
+    
+    // Allows the use of returnData from calls to be used as parameters in other calls
+    function callNested(NestedCall memory call, NestedCallParameter[] memory parameters) public returns (uint256 blockNumber, bytes memory returnData) {
         blockNumber = block.number;
-        returnData = new bytes[](calls.length);
-        for(uint256 i = 0; i < calls.length; i++) {
-            bytes memory resolvedCallData;
-            for (uint256 ii = 0; ii < calls[i].parameters.length; ii++) {
-              if (calls[i].parameters[ii].isStatic == true) {
-                if (ii > 0) {
-                  resolvedCallData = abi.encode(resolvedCallData, calls[i].parameters[ii].staticParam);
-                } else {
-                  resolvedCallData = abi.encode(calls[i].parameters[ii].staticParam);
-                }
-              } else {
-                (bool successA, bytes memory retA) = calls[i].parameters[ii].target.call(calls[i].parameters[ii].callData);
-                require(successA, "Multicall aggregate nested: call failed A");
-                bytes memory resultValue = new bytes(calls[i].parameters[ii].dataLength);
-                for (uint256 iii = 0; iii < calls[i].parameters[ii].dataLength; iii++) {
-                    resultValue[iii] = retA[calls[i].parameters[ii].offset + iii];
-                } 
-                if (ii > 0) {
-                  resolvedCallData = abi.encode(resolvedCallData, resultValue);
-                } else {
-                  resolvedCallData = abi.encode(resultValue);
-                }
-              }
+        bytes memory resolvedCallData;
+        for (uint256 i = 0; i < parameters.length; i++) {
+          if (parameters[i].isStatic == true) {
+            if (i > 0) {
+              resolvedCallData = abi.encodePacked(resolvedCallData, parameters[i].callData);
+            } else {
+              resolvedCallData = abi.encodePacked(call.sig, parameters[i].callData);
             }
-            (bool successB, bytes memory retB) = calls[i].target.call(resolvedCallData);
-            require(successB, "Multicall aggregate nested: call failed B");
-            returnData[i] = retB;
+          }
+           else {
+            (bool successA, bytes memory retA) = parameters[i].target.call(parameters[i].callData);
+            require(successA, "Multicall aggregate nested: call failed A");
+            bytes memory resultValue = new bytes(parameters[i].dataLength);
+            for (uint256 ii = 0; ii < parameters[i].dataLength; ii++) {
+                resultValue[ii] = retA[parameters[i].offset + ii];
+            } 
+            if (i > 0) {
+              resolvedCallData = abi.encodePacked(resolvedCallData, resultValue);
+            } else {
+              resolvedCallData = abi.encodePacked(call.sig, resultValue);
+            }
+          }
         }
+        (bool successB, bytes memory retB) = call.target.call(resolvedCallData);
+        require(successB, "Multicall aggregate nested: call failed B");
+        returnData = retB;
     }
 
     function aggregate(Call[] memory calls) public returns (uint256 blockNumber, bytes[] memory returnData) {
