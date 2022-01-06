@@ -1,4 +1,9 @@
-# Multicall <img width="100" align="right" alt="Multicall" src="https://user-images.githubusercontent.com/304108/55666937-320cb180-5888-11e9-907b-48ba66150523.png" />
+# Better Multicall
+
+A Fork of MakerDAO's [Multicall](https://github.com/makerdao/multicall) with the abilty to make arbtitary contract calls with input data from from the return data of another contract call(s).
+
+*See ``function callNested(NestedCall memory call, NestedCallParameter[] memory parameters)`` in [./src/MulticallNested.sol](https://github.com/DecentralisedTech/multicall/blob/master/src/MulticallNested.sol)*
+
 
 Multicall aggregates results from multiple contract constant function calls.
 
